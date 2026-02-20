@@ -16,7 +16,7 @@ jobs:
           # ref: v1.4.3 # Optional: Uncomment and change this to build a specific release tag instead of the latest 'main' branch
 
       - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
       - name: Install Mise
         run: curl https://mise.run | sh
