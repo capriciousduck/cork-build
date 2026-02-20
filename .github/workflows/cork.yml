@@ -1,0 +1,53 @@
+name: Build Cork
+
+on:
+  # Allows you to manually trigger the build from the GitHub Actions tab
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: macos-14 # Uses the macOS Sonoma environment
+
+    steps:
+      - name: Checkout Cork Repository
+        uses: actions/checkout@v4
+        with:
+          repository: buresdv/Cork
+          # ref: v1.4.3 # Optional: Uncomment and change this to build a specific release tag instead of the latest 'main' branch
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+
+      - name: Install Mise
+        run: curl https://mise.run | sh
+
+      - name: Install Tuist via Mise and Generate Project
+        run: |
+          eval "$($HOME/.local/bin/mise activate bash)"
+          mise install tuist
+          mise exec tuist@4.50.2 -- tuist install
+          mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
+
+      - name: Build App
+        run: |
+          # The -derivedDataPath flag ensures the compiled app is placed in a predictable folder
+          xcodebuild clean build \
+            -workspace Cork.xcworkspace \
+            -scheme "Self-Compiled" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build_output
+
+      - name: Zip the App Bundle
+        run: |
+          # macOS .app files are directories, so they must be zipped before uploading to avoid corruption
+          cd build_output/Build/Products/Release
+          zip -r Cork.zip Cork.app
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cork-App
+          path: build_output/Build/Products/Release/Cork.zip
