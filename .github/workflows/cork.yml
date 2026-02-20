@@ -13,8 +13,9 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      - name: Select Xcode 26.2
-        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
+      # Grounded back in reality: Xcode 16.2 is the latest stable release
+      - name: Select Xcode 16.2
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
       - name: Install Mise
         run: curl https://mise.run | sh
@@ -28,28 +29,24 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
-      # THE FIX: Stripped out the forced Release configuration and generic destination 
-      # so Xcode stops fighting Tuist's internal project mapping.
-      - name: Build App
+      # Using 'archive' to match the developer's exact GUI instructions
+      - name: Archive App
         run: |
-          xcodebuild clean build \
+          xcodebuild clean archive \
             -workspace Cork.xcworkspace \
             -scheme "Self-Compiled" \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
-            -derivedDataPath build_output
+            -archivePath Cork.xcarchive
 
-      # UPDATED: Path changed from Release to Debug to match the default build action
       - name: Zip the App Bundle
         run: |
-          cd build_output/Build/Products/Debug
+          # The compiled .app is safely nested inside the generated .xcarchive bundle
+          cd Cork.xcarchive/Products/Applications
           zip -r Cork.zip Cork.app
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Cork-App
-          path: build_output/Build/Products/Debug/Cork.zip
+          path: Cork.xcarchive/Products/Applications/Cork.zip
