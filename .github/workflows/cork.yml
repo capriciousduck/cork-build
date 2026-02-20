@@ -13,7 +13,6 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      # RESTORED FIX: Pointing to Xcode 26.2 to ensure Swift 6.2+ is used
       - name: Select Xcode 26.2
         run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
 
@@ -29,18 +28,19 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
+      # FINAL FIX: Swapped to Ad-Hoc signing (-) so the Asset Catalog compiler doesn't crash on Apple Silicon
       - name: Build App
         run: |
           xcodebuild clean build \
             -workspace Cork.xcworkspace \
             -scheme "Self-Compiled" \
             -configuration Release \
+            -destination "generic/platform=macOS" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual" \
             -derivedDataPath build_output
 
       - name: Zip the App Bundle
