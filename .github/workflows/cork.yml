@@ -13,7 +13,6 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      # UPGRADED: Pointing to Xcode 26.2 to satisfy the Swift 6.2.0 requirement
       - name: Select Xcode 26.2
         run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
 
@@ -29,12 +28,15 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
+      # FIX 3: Added flags to bypass the Xcode plugin and macro security prompts
       - name: Build App
         run: |
           xcodebuild clean build \
             -workspace Cork.xcworkspace \
             -scheme "Self-Compiled" \
             -configuration Release \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
