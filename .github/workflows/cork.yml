@@ -5,7 +5,6 @@ on:
 
 jobs:
   build:
-    # UPGRADED: Moved to macos-15 to gain access to Swift 6.1+
     runs-on: macos-15 
 
     steps:
@@ -14,9 +13,9 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      # UPGRADED: Pointing to Xcode 16.4 which contains Swift 6.1
-      - name: Select Xcode 16.4
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+      # UPGRADED: Pointing to Xcode 26.2 to satisfy the Swift 6.2.0 requirement
+      - name: Select Xcode 26.2
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
 
       - name: Install Mise
         run: curl https://mise.run | sh
