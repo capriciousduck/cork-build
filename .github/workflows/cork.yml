@@ -1,52 +1,61 @@
-name: Build Cork
+name: Build Cork DMG
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: macos-15 
+    runs-on: macos-14   # Sonoma runner (Xcode 15+)
 
     steps:
-      - name: Checkout Cork Repository
+      - name: Checkout empty repo
         uses: actions/checkout@v4
-        with:
-          repository: buresdv/Cork
 
-      # Grounded back in reality: Xcode 16.2 is the latest stable release
-      - name: Select Xcode 16.2
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-
-      - name: Install Mise
-        run: curl https://mise.run | sh
-
-      - name: Install Tuist via Mise and Generate Project
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clone Cork source
         run: |
-          eval "$($HOME/.local/bin/mise activate bash)"
-          mise install tuist
-          mise exec tuist@4.50.2 -- tuist install
-          mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
+          git clone https://github.com/buresdv/Cork.git source
 
-      # Using 'archive' to match the developer's exact GUI instructions
-      - name: Archive App
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Resolve Swift Packages
         run: |
-          xcodebuild clean archive \
-            -workspace Cork.xcworkspace \
-            -scheme "Self-Compiled" \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGN_STYLE="Manual" \
-            -archivePath Cork.xcarchive
+          cd source
+          xcodebuild -resolvePackageDependencies
 
-      - name: Zip the App Bundle
+      - name: Build Release
         run: |
-          # The compiled .app is safely nested inside the generated .xcarchive bundle
-          cd Cork.xcarchive/Products/Applications
-          zip -r Cork.zip Cork.app
+          cd source
+          xcodebuild \
+            -scheme Cork \
+            -configuration Release \
+            -derivedDataPath build \
+            clean build
 
-      - name: Upload Artifact
+      - name: Prepare App
+        run: |
+          mkdir dist
+          cp -R source/build/Build/Products/Release/Cork.app dist/
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "Cork" \
+            --window-size 600 400 \
+            --app-drop-link 450 185 \
+            dist/Cork.dmg \
+            dist/Cork.app
+
+      - name: Upload DMG Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cork-App
-          path: Cork.xcarchive/Products/Applications/Cork.zip
+          name: Cork-DMG
+          path: dist/Cork.dmg
