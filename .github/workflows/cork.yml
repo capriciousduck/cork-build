@@ -1,27 +1,29 @@
 name: Build Cork
 
 on:
-  # Allows you to manually trigger the build from the GitHub Actions tab
   workflow_dispatch: 
 
 jobs:
   build:
-    runs-on: macos-14 # Uses the macOS Sonoma environment
+    runs-on: macos-14 
 
     steps:
       - name: Checkout Cork Repository
         uses: actions/checkout@v4
         with:
           repository: buresdv/Cork
-          # ref: v1.4.3 # Optional: Uncomment and change this to build a specific release tag instead of the latest 'main' branch
 
-      - name: Select Xcode 16
+      # FIX 1: Updated from 16.0 to 16.2 to match current GitHub runner availability
+      - name: Select Xcode 16.2
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
       - name: Install Mise
         run: curl https://mise.run | sh
 
+      # FIX 2: Added the GITHUB_TOKEN environment variable to bypass the 403 rate limit
       - name: Install Tuist via Mise and Generate Project
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           eval "$($HOME/.local/bin/mise activate bash)"
           mise install tuist
@@ -30,7 +32,6 @@ jobs:
 
       - name: Build App
         run: |
-          # The -derivedDataPath flag ensures the compiled app is placed in a predictable folder
           xcodebuild clean build \
             -workspace Cork.xcworkspace \
             -scheme "Self-Compiled" \
@@ -42,7 +43,6 @@ jobs:
 
       - name: Zip the App Bundle
         run: |
-          # macOS .app files are directories, so they must be zipped before uploading to avoid corruption
           cd build_output/Build/Products/Release
           zip -r Cork.zip Cork.app
 
