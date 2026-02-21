@@ -13,9 +13,15 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      # We absolutely need Xcode 26.2 to get Swift 6.2+
       - name: Select Xcode 26.2
         run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
+
+      # THE FIX: Delete the assets that crash Apple's headless compiler before Tuist sees them
+      - name: Remove Headless CI Crash Hazards
+        run: |
+          rm -rf "Cork/Preview Content"
+          rm -rf "Cork/AppIcon.icon"
+          rm -rf "Cork/AppIcon.icns"
 
       - name: Install Mise
         run: curl https://mise.run | sh
@@ -29,10 +35,10 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
-      # Using Archive to safely compile assets, with all necessary CI bypass flags
-      - name: Archive App
+      # Swapped back to 'build' to bypass aggressive archive post-processing
+      - name: Build App
         run: |
-          xcodebuild clean archive \
+          xcodebuild clean build \
             -workspace Cork.xcworkspace \
             -scheme "Self-Compiled" \
             -skipPackagePluginValidation \
@@ -40,15 +46,18 @@ jobs:
             SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
-            -archivePath Cork.xcarchive
+            -derivedDataPath build_output
 
+      # Dynamically find the .app bundle wherever Xcode placed it
       - name: Zip the App Bundle
         run: |
-          cd Cork.xcarchive/Products/Applications
+          APP_PATH=$(find build_output/Build/Products -name "Cork.app" -type d)
+          cd "$(dirname "$APP_PATH")"
           zip -r Cork.zip Cork.app
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Cork-App
-          path: Cork.xcarchive/Products/Applications/Cork.zip
+          # Uses a wildcard to grab the zip file from any nested folder
+          path: build_output/Build/Products/**/*.zip
