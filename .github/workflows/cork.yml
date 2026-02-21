@@ -13,7 +13,6 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      # Restored to the factual reality of 2026: Xcode 26.2 contains the required Swift 6.2.0 compiler
       - name: Select Xcode 26.2
         run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
 
@@ -29,7 +28,6 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
-      # Using xcbeautify to expose the actual Swift compilation errors instead of a generic Exit Code 65
       - name: Build App
         run: |
           set -o pipefail
@@ -38,6 +36,7 @@ jobs:
             -scheme "Self-Compiled" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
             -derivedDataPath build_output | xcbeautify
