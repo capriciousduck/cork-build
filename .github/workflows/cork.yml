@@ -13,15 +13,8 @@ jobs:
         with:
           repository: buresdv/Cork
 
-      - name: Select Xcode 26.2
-        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
-
-      # THE FIX: Delete the assets that crash Apple's headless compiler before Tuist sees them
-      - name: Remove Headless CI Crash Hazards
-        run: |
-          rm -rf "Cork/Preview Content"
-          rm -rf "Cork/AppIcon.icon"
-          rm -rf "Cork/AppIcon.icns"
+      - name: Select Xcode 16.2
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
       - name: Install Mise
         run: curl https://mise.run | sh
@@ -35,7 +28,6 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
-      # Swapped back to 'build' to bypass aggressive archive post-processing
       - name: Build App
         run: |
           xcodebuild clean build \
@@ -43,12 +35,11 @@ jobs:
             -scheme "Self-Compiled" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
+            DEVELOPMENT_TEAM="" \
             -derivedDataPath build_output
 
-      # Dynamically find the .app bundle wherever Xcode placed it
       - name: Zip the App Bundle
         run: |
           APP_PATH=$(find build_output/Build/Products -name "Cork.app" -type d)
@@ -59,5 +50,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Cork-App
-          # Uses a wildcard to grab the zip file from any nested folder
           path: build_output/Build/Products/**/*.zip
