@@ -19,6 +19,13 @@ jobs:
       - name: Install Mise
         run: curl https://mise.run | sh
 
+      # THE FIX PART 1: Hollow out the asset folders. Tuist sees the folders and passes validation, 
+      # but actool has zero actual image files to crash on.
+      - name: Hollow Out Crash Hazards
+        run: |
+          find "Cork/AppIcon.icon" -type f -delete
+          find "Cork/Preview Content" -type f -delete
+
       - name: Install Tuist via Mise and Generate Project
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -28,7 +35,8 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
-      # THE FIX: Tell the Swift 6 compiler to use minimal concurrency checking so it doesn't crash on Cork's legacy code
+      # THE FIX PART 2: Explicitly tell Xcode to ignore the AppIcon and Previews, 
+      # alongside our concurrency and explicit module bypasses.
       - name: Build App
         run: |
           xcodebuild clean build \
@@ -39,6 +47,8 @@ jobs:
             SWIFT_STRICT_CONCURRENCY=minimal \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO \
+            ENABLE_PREVIEWS=NO \
+            ASSETCATALOG_COMPILER_APPICON_NAME="" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
             -derivedDataPath build_output
