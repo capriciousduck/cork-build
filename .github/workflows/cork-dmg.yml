@@ -19,10 +19,8 @@ jobs:
       - name: Install Mise
         run: curl https://mise.run | sh
 
-      # NEW: Back up the standard .icns file before destroying the folders
-      - name: Smuggle App Icon
+      - name: Remove Headless CI Crash Hazard
         run: |
-          cp "Cork/AppIcon.icns" "backup_icon.icns"
           rm -rf "Cork/AppIcon.icon"
           rm -rf "Cork/AppIcon.icns"
 
@@ -49,21 +47,21 @@ jobs:
             CODE_SIGN_STYLE="Manual" \
             -derivedDataPath build_output
 
-      # NEW: Inject the backed-up icon into the compiled app bundle before creating the DMG
+      # NEW FIX: Replaced the zip command with hdiutil to create a compressed DMG
       - name: Create DMG
         run: |
           APP_PATH=$(find build_output/Build/Products -name "Cork.app" -type d | head -n 1)
           if [ -n "$APP_PATH" ]; then
-            # Manually place the icon where macOS expects it to be
-            cp "backup_icon.icns" "$APP_PATH/Contents/Resources/AppIcon.icns"
-            
             cd "$(dirname "$APP_PATH")"
+            
+            # Use hdiutil to create a compressed (UDZO) Disk Image from the .app folder
             hdiutil create -volname "Cork" -srcfolder "Cork.app" -ov -format UDZO "Cork.dmg"
           else
             echo "App bundle not found. The build failed."
             exit 1
           fi
 
+      # UPDATED: Uploading the DMG instead of the ZIP
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         if: always()
