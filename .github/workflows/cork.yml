@@ -28,6 +28,7 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
+      # THE FIX: Using OTHER_SWIFT_FLAGS to force the compiler to bypass explicit module scanning, overriding Tuist's generated settings.
       - name: Build App
         run: |
           set -o pipefail
@@ -36,6 +37,7 @@ jobs:
             -scheme "Self-Compiled" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
+            OTHER_SWIFT_FLAGS="-Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import" \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
