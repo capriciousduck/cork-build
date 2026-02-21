@@ -28,29 +28,29 @@ jobs:
           mise exec tuist@4.50.2 -- tuist install
           mise exec tuist@4.50.2 -- tuist generate --no-binary-cache
 
-      # THE FIX: Using OTHER_SWIFT_FLAGS to force the compiler to bypass explicit module scanning, overriding Tuist's generated settings.
+      # THE FIX: Tell the Swift 6 compiler to use minimal concurrency checking so it doesn't crash on Cork's legacy code
       - name: Build App
         run: |
-          set -o pipefail
           xcodebuild clean build \
             -workspace Cork.xcworkspace \
             -scheme "Self-Compiled" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            OTHER_SWIFT_FLAGS="-Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import" \
+            SWIFT_STRICT_CONCURRENCY=minimal \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
-            -derivedDataPath build_output | xcbeautify
+            -derivedDataPath build_output
 
       - name: Zip the App Bundle
         run: |
           APP_PATH=$(find build_output/Build/Products -name "Cork.app" -type d | head -n 1)
-          if [ -d "$APP_PATH" ]; then
+          if [ -n "$APP_PATH" ]; then
             cd "$(dirname "$APP_PATH")"
             zip -r Cork.zip Cork.app
           else
-            echo "App bundle not found. The build likely failed."
+            echo "App bundle not found. The build failed."
             exit 1
           fi
 
